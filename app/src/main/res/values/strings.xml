@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Rescan</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_scan">Find devices</string>
+    <string name="write_settings_permission">Grant permission to write to settings?</string>
+    <string name="write_settings_permission_ok">Grant it!</string>
+</resources>
