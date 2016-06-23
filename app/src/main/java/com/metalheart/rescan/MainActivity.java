@@ -23,24 +23,17 @@ public class MainActivity extends AppCompatActivity {
 
         //
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.System.canWrite(this)) {
-            new AlertDialog.Builder(this)
-                    .setMessage(R.string.write_settings_permission)
-                    .setPositiveButton(R.string.write_settings_permission_ok, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            Intent intent = new Intent(android.provider.Settings.ACTION_MANAGE_WRITE_SETTINGS);
-                            intent.setData(Uri.parse("package:" + getPackageName()));
-                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
-                            try {
-                                startActivity(intent);
-                            } catch (Exception e) {
-                                Log.e("MainActivity", "error starting permission intent", e);
-                            }
-                        }
-                    })
-                    .show();
-            return;
+            Intent intent = new Intent(android.provider.Settings.ACTION_MANAGE_WRITE_SETTINGS);
+            intent.setData(Uri.parse("package:" + getPackageName()));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+            try {
+                startActivity(intent);
+            } catch (Exception e) {
+                Log.e("MainActivity", "error starting permission intent", e);
+            }
+
         }
 
         //

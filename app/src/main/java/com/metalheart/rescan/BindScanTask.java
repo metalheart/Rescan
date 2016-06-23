@@ -1,5 +1,8 @@
 package com.metalheart.rescan;
 
+import android.os.AsyncTask;
+import android.util.Log;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
@@ -14,24 +17,9 @@ import cc.mvdan.accesspoint.WifiApControl;
 /**
  * Created by m_antipov on 22.06.2016.
  */
-public class BindScanTask implements Runnable {
-    public interface IBindScanTaskListener extends EventListener {
-        void onComplete(boolean success);
-        void onError();
-    }
-
-    private IBindScanTaskListener listener_ = null;
-    private WifiApControl ap_ = null;
-    private long runCount_ = 0;
-
-    public BindScanTask(WifiApControl ap, IBindScanTaskListener listener)
-    {
-        listener_ = listener;
-        ap_ = ap;
-    }
-
+public class BindScanTask extends AsyncTask<Void, Void, Void> {
     @Override
-    public void run() {
+    protected Void doInBackground(Void... params) {
         ++runCount_;
 
         boolean done = false;
@@ -59,7 +47,7 @@ public class BindScanTask implements Runnable {
                             break;
                         }
                     } catch (Exception e) {
-                        //
+                        Log.d("test", "error!");
                     } finally {
                         if (s.isConnected()) {
                             s.close();
@@ -75,6 +63,23 @@ public class BindScanTask implements Runnable {
         finally {
             listener_.onComplete(done);
         }
+
+        return null;
+    }
+
+    public interface IBindScanTaskListener extends EventListener {
+        void onComplete(boolean success);
+        void onError();
+    }
+
+    private IBindScanTaskListener listener_ = null;
+    private WifiApControl ap_ = null;
+    private long runCount_ = 0;
+
+    public BindScanTask(WifiApControl ap, IBindScanTaskListener listener)
+    {
+        listener_ = listener;
+        ap_ = ap;
     }
 
     long runCount() {

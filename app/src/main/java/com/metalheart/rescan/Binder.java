@@ -106,7 +106,8 @@ public class Binder implements BindScanTask.IBindScanTaskListener{
 
             bindResultListener_ = listener;
             bindScanTask_ = new BindScanTask(apControl_, this);
-            bindScanThreadHandler_.postDelayed(bindScanTask_, 100);
+
+            bindScanTask_.execute();
 
             isBinding_ = true;
         }
@@ -117,10 +118,20 @@ public class Binder implements BindScanTask.IBindScanTaskListener{
     @Override
     public void onComplete(boolean success) {
         synchronized (this) {
-            if (success) {
+            if (!success && bindScanTask_ != null && bindScanTask_.runCount() < 100) {
+                bindScanThreadHandler_.postDelayed(new Runnable() {
+
+                    public void run() {
+                        bindScanTask_.execute();
+                    }
+                }, 1000);
+            } else {
+                if (success) {
+                    bindResultListener_.onComplete("");
+                } else {
+                    bindResultListener_.onError();
+                }
                 stopBind();
-            } else if (bindScanTask_ != null && bindScanTask_.runCount() < 100) {
-                bindScanThreadHandler_.postDelayed(bindScanTask_, 100);
             }
         }
     }
@@ -132,7 +143,7 @@ public class Binder implements BindScanTask.IBindScanTaskListener{
 
     public void stopBind() {
         synchronized (this) {
-            bindScanThreadHandler_.removeCallbacks(bindScanTask_);
+            //bindScanThreadHandler_.removeCallbacks(bindScanTask_);
 
             bindScanTask_ = null;
             isBinding_ = false;
