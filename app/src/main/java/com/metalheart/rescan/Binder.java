@@ -105,8 +105,7 @@ public class Binder implements BindScanTask.IBindScanTaskListener{
             apControl_.setWifiApEnabled(apConfiguration_, true);
 
             bindResultListener_ = listener;
-            bindScanTask_ = new BindScanTask(apControl_, this);
-
+            bindScanTask_ = new BindScanTask(apControl_, 100, this);
             bindScanTask_.execute();
 
             isBinding_ = true;
@@ -118,21 +117,12 @@ public class Binder implements BindScanTask.IBindScanTaskListener{
     @Override
     public void onComplete(boolean success) {
         synchronized (this) {
-            if (!success && bindScanTask_ != null && bindScanTask_.runCount() < 100) {
-                bindScanThreadHandler_.postDelayed(new Runnable() {
-
-                    public void run() {
-                        bindScanTask_.execute();
-                    }
-                }, 1000);
+            if (success) {
+                bindResultListener_.onComplete("");
             } else {
-                if (success) {
-                    bindResultListener_.onComplete("");
-                } else {
-                    bindResultListener_.onError();
-                }
-                stopBind();
+                bindResultListener_.onError();
             }
+            stopBind();
         }
     }
 
