@@ -24,8 +24,9 @@ import cc.mvdan.accesspoint.WifiApControl;
  */
 public class Binder implements BindScanTask.IBindScanTaskListener{
     public interface IBindListener extends EventListener {
-        void onComplete(String sn);
+        void onComplete();
         void onError();
+        void onDeviceFound(String name);
     }
 
     private static volatile Binder instance_ = null;
@@ -61,22 +62,6 @@ public class Binder implements BindScanTask.IBindScanTaskListener{
 
                 inited_ = true;
             }
-            /*boolean enabled = apControl_.isEnabled();
-            int state = apControl_.getState();
-
-            WifiConfiguration config = apControl_.getConfiguration();
-            Inet4Address addr4 = apControl_.getInet4Address();
-            Inet6Address addr6 = apControl_.getInet6Address();
-
-            // These are cached and may no longer be connected, see
-            // WifiApControl.getReachableClients(int, ReachableClientListener)
-            List<WifiApControl.Client> clients = apControl_.getClients()
-
-            // Wifi must be disabled to enable the access point
-
-
-            apControl_.disable();
-            wifiManager_.setWifiEnabled(true);*/
         }
     }
 
@@ -118,7 +103,7 @@ public class Binder implements BindScanTask.IBindScanTaskListener{
     public void onComplete(boolean success) {
         synchronized (this) {
             if (success) {
-                bindResultListener_.onComplete("");
+                bindResultListener_.onComplete();
             } else {
                 bindResultListener_.onError();
             }
@@ -131,10 +116,17 @@ public class Binder implements BindScanTask.IBindScanTaskListener{
         stopBind();
     }
 
+    @Override
+    public void onDeviceBonded(BindScanTask.DeviceInfo info) {
+        bindResultListener_.onDeviceFound(String.format("Found device id %d", (int)info.id));
+    }
+
     public void stopBind() {
         synchronized (this) {
             //bindScanThreadHandler_.removeCallbacks(bindScanTask_);
-
+            if (bindScanTask_ != null) {
+                bindScanTask_.cancel(true);
+            }
             bindScanTask_ = null;
             isBinding_ = false;
 
