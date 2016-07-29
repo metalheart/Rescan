@@ -1,8 +1,11 @@
 package com.metalheart.rescan.model;
 
 import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Pair;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.security.InvalidParameterException;
@@ -25,20 +28,49 @@ public class DB {
         return true;
     }
 
-    public static Object loadItem(String alias) {
-        Class<? extends DBItemBase> clazz = registeredItems_.get(alias);
-        if (clazz != null) {
-
-        }
-
-        return null;
-    }
-
     private static String convertCursorTypeToString(int type) {
         switch (type) {
             case Cursor.FIELD_TYPE_INTEGER: return "integer";
+            case Cursor.FIELD_TYPE_STRING: return "text";
             default: throw new InvalidParameterException();
         }
+    }
+
+    /*private class FieldSetter {
+        public final DBItemBase.DBItemFieldDesc desc;
+        public FieldSetter(DBItemBase.DBItemFieldDesc desc) {
+            this.desc = desc;
+        }
+
+        private setField(Object obj, ) {
+
+        }
+
+        public void setValue(Object obj, Cursor c) {
+            switch (desc.fieldType) {
+                case Cursor.FIELD_TYPE_INTEGER: obj.
+            }
+        }
+    }*/
+
+    public static Object loadItem(String alias, SQLiteDatabase db) throws IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException, NoSuchFieldException {
+        Class<? extends DBItemBase> clazz = registeredItems_.get(alias);
+        if (clazz != null) {
+            Cursor c = db.query(alias, null, null, null, null, null, null);
+            if (c.moveToFirst()) {
+                Object instance = clazz.newInstance();
+
+                Method method = clazz.getMethod(DBItemBase.Contract.GET_FIELDS_METHOD);
+                DBItemBase.DBItemFieldDesc descs[] = (DBItemBase.DBItemFieldDesc[])method.invoke(null);
+
+                for (DBItemBase.DBItemFieldDesc desc : descs) {
+                    Field field = clazz.getDeclaredField(desc.fieldName);
+                    field.set(c.);
+                }
+            }
+        }
+
+        return null;
     }
 
     private static String parseFlags(int flags) {

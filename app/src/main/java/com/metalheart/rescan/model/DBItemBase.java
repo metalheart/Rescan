@@ -7,6 +7,10 @@ import android.util.Pair;
 public class DBItemBase {
     public long id;
 
+    public DBItemBase() {
+        this.id = -1;
+    }
+
     public DBItemBase(long id) {
         this.id = id;
     }
@@ -30,6 +34,15 @@ public class DBItemBase {
     public static class Contract {
         public static final String GET_FIELDS_METHOD = "getFields";
         public static final String GET_TABLE_NAME_METHOD = "getTableName";
+    }
+
+    protected static DBItemFieldDesc[] concatenateFields(DBItemFieldDesc[] fields1, DBItemFieldDesc[] fields2) {
+        DBItemFieldDesc[] result = new DBItemFieldDesc[fields1.length + fields2.length];
+
+        System.arraycopy(fields1, 0, result, 0, fields1.length);
+        System.arraycopy(fields2, 0, result, fields1.length, fields2.length);
+
+        return result;
     }
 
     public static DBItemFieldDesc[] getFields() { return new DBItemFieldDesc[]{new DBItemFieldDesc("id", Cursor.FIELD_TYPE_INTEGER, 0)}; }
