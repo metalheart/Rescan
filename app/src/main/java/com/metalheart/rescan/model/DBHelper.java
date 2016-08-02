@@ -40,6 +40,43 @@ public class DBHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        Log.d(LOG_TAG, "--- onUpgrade database ---");
+        // создаем таблицу с полями
 
+        try {
+            List<Pair<String, String>> tables = DB.generateDBCreateQuery();
+            for (Pair<?,?> p : tables) {
+                db.execSQL("drop table if exists " + (String)p.first + ";");
+            }
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+
+        onCreate(db);
+    }
+
+    @Override
+    public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        Log.d(LOG_TAG, "--- onDowngrade database ---");
+        // создаем таблицу с полями
+
+        try {
+            List<Pair<String, String>> tables = DB.generateDBCreateQuery();
+            for (Pair<?,?> p : tables) {
+                db.execSQL("drop table if exists " + (String)p.first + ";");
+            }
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+
+        onCreate(db);
     }
 }

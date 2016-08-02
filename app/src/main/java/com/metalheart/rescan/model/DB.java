@@ -1,5 +1,6 @@
 package com.metalheart.rescan.model;
 
+import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -23,6 +24,10 @@ import static com.metalheart.rescan.model.DBItemBase.DBItemFieldDesc.FLAG_AUTO_I
 public class DB {
     private static final HashMap<String, Class<? extends DBItemBase>> registeredItems_ = new HashMap<String, Class<? extends DBItemBase>>();
 
+    public static void init() {
+        DB.registerItem(DeviceRecord.TABLE_NAME, DeviceRecord.class);
+    }
+
     public static boolean registerItem(String alias, Class<? extends DBItemBase> clazz) {
         registeredItems_.put(alias, clazz);
         return true;
@@ -36,42 +41,99 @@ public class DB {
         }
     }
 
-    /*private class FieldSetter {
-        public final DBItemBase.DBItemFieldDesc desc;
-        public FieldSetter(DBItemBase.DBItemFieldDesc desc) {
-            this.desc = desc;
+    private static class FieldSetter {
+        public final DBItemBase.DBItemFieldDesc desc_;
+        public final Field classField_;
+
+        public FieldSetter(DBItemBase.DBItemFieldDesc desc, Class clazz) throws NoSuchFieldException {
+            this.desc_ = desc;
+            this.classField_ = clazz.getField(desc.fieldName);
         }
 
-        private setField(Object obj, ) {
-
-        }
-
-        public void setValue(Object obj, Cursor c) {
-            switch (desc.fieldType) {
-                case Cursor.FIELD_TYPE_INTEGER: obj.
+        public void setValue(Object obj, Cursor c) throws NoSuchFieldException, IllegalAccessException, InvalidParameterException {
+            int columnIndex = c.getColumnIndex(desc_.fieldName);
+            switch (desc_.fieldType) {
+                case Cursor.FIELD_TYPE_INTEGER: classField_.setInt(obj, c.getInt(columnIndex)); break;
+                case Cursor.FIELD_TYPE_STRING: classField_.set(obj, c.getString(columnIndex)); break;
+                default: throw new InvalidParameterException();
             }
         }
-    }*/
-
-    public static Object loadItem(String alias, SQLiteDatabase db) throws IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException, NoSuchFieldException {
-        Class<? extends DBItemBase> clazz = registeredItems_.get(alias);
-        if (clazz != null) {
-            Cursor c = db.query(alias, null, null, null, null, null, null);
-            if (c.moveToFirst()) {
-                Object instance = clazz.newInstance();
-
-                Method method = clazz.getMethod(DBItemBase.Contract.GET_FIELDS_METHOD);
-                DBItemBase.DBItemFieldDesc descs[] = (DBItemBase.DBItemFieldDesc[])method.invoke(null);
-
-                for (DBItemBase.DBItemFieldDesc desc : descs) {
-                    Field field = clazz.getDeclaredField(desc.fieldName);
-                    field.set(c.);
-                }
-            }
-        }
-
-        return null;
     }
+
+    public static List<Object> loadItems(SQLiteDatabase db, String tableName, String[] columns, String where, String[] args, String limit) throws IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException, NoSuchFieldException {
+        List<Object> result = new ArrayList<>();
+
+        Class<? extends DBItemBase> clazz = registeredItems_.get(tableName);
+        if (clazz != null) {
+            Cursor c = db.query(tableName, columns, where, args, null, null, null);
+            if (c.moveToFirst()) {
+                do {
+                    Object item = clazz.newInstance();
+
+                    Method method = clazz.getMethod(DBItemBase.Contract.GET_FIELDS_METHOD);
+                    DBItemBase.DBItemFieldDesc descs[] = (DBItemBase.DBItemFieldDesc[]) method.invoke(null);
+
+                    for (DBItemBase.DBItemFieldDesc desc : descs) {
+                        FieldSetter setter = new FieldSetter(desc, clazz);
+                        setter.setValue(item, c);
+                    }
+
+                    result.add(item);
+                } while (c.moveToNext());
+            }
+        }
+
+        return result;
+    }
+
+    private static class FieldGetter {
+        public final DBItemBase.DBItemFieldDesc desc_;
+        public final Field classField_;
+
+        public FieldGetter(DBItemBase.DBItemFieldDesc desc, Class clazz) throws NoSuchFieldException {
+            this.desc_ = desc;
+            this.classField_ = clazz.getField(desc.fieldName);
+        }
+
+        public void getValue(Object obj, ContentValues cv) throws NoSuchFieldException, IllegalAccessException, InvalidParameterException {
+            switch (desc_.fieldType) {
+                case Cursor.FIELD_TYPE_INTEGER: cv.put(desc_.fieldName, classField_.getLong(obj)); break;
+                case Cursor.FIELD_TYPE_STRING: cv.put(desc_.fieldName, (String) classField_.get(obj)); break;
+                default: throw new InvalidParameterException();
+            }
+        }
+    }
+
+    public static DBItemBase storeItem(SQLiteDatabase db, DBItemBase item) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, NoSuchFieldException {
+
+        Class clazz = item.getClass();
+        Method getFieldsMethod = clazz.getMethod(DBItemBase.Contract.GET_FIELDS_METHOD);
+        Method getTableNameMathod = clazz.getMethod(DBItemBase.Contract.GET_TABLE_NAME_METHOD);
+
+        DBItemBase.DBItemFieldDesc descs[] = (DBItemBase.DBItemFieldDesc[]) getFieldsMethod.invoke(null);
+        String tableName = (String) getTableNameMathod.invoke(null);
+
+        ContentValues cv = new ContentValues();
+
+        for (DBItemBase.DBItemFieldDesc desc : descs) {
+            //skip ID field
+            //TODO: implement in more clean way
+            if (desc.fieldName == DBItemBase.getFields()[0].fieldName) {
+                continue;
+            }
+
+            FieldGetter getter = new FieldGetter(desc, clazz);
+            getter.getValue(item, cv);
+        }
+
+        if (item.id < 0) {
+            item.id = db.insert(tableName, null, cv);
+        } else {
+            db.update(tableName, cv, "id = ", new String[]{Long.toString(item.id)});
+        }
+        return item;
+    }
+
 
     private static String parseFlags(int flags) {
         String result = "";

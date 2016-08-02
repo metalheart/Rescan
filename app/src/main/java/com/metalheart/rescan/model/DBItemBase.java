@@ -1,10 +1,11 @@
 package com.metalheart.rescan.model;
 import android.database.Cursor;
+import android.databinding.BaseObservable;
 import android.util.Pair;
 /**
  * Created by m_antipov on 27.07.2016.
  */
-public class DBItemBase {
+public class DBItemBase extends BaseObservable {
     public long id;
 
     public DBItemBase() {
@@ -45,6 +46,6 @@ public class DBItemBase {
         return result;
     }
 
-    public static DBItemFieldDesc[] getFields() { return new DBItemFieldDesc[]{new DBItemFieldDesc("id", Cursor.FIELD_TYPE_INTEGER, 0)}; }
+    public static DBItemFieldDesc[] getFields() { return new DBItemFieldDesc[]{new DBItemFieldDesc("id", Cursor.FIELD_TYPE_INTEGER, DBItemFieldDesc.FLAG_PK | DBItemFieldDesc.FLAG_AUTO_INCREMENT)}; }
     public static String getTableName() { return ""; }
 }
